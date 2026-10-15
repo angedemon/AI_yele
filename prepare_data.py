@@ -54,7 +54,7 @@ def load_raw() -> pd.DataFrame:
             with open(name, encoding="utf-8") as f:
                 docs = json.load(f)
             docs = [{k: _flatten_extended_json(v) for k, v in d.items()}
-                    for d in docs]
+                    for d in docs if d.get("suspect") is not True]
             print(f"[chargement] {len(docs)} mesures depuis {name}")
             return pd.DataFrame(docs)
 
@@ -66,7 +66,9 @@ def load_raw() -> pd.DataFrame:
                          "connexion dans .env")
     db = os.environ.get("SPEEDTEST_DATABASE_NAME", "yele_speedtest")
     projection = {c: 0 for c in PII_COLUMNS if c != "_id"} | {"_id": 0}
-    docs = list(MongoClient(uri)[db]["speedtest_results"].find({}, projection))
+    # Mesures suspectes (position GPS simulée) écartées, comme dans model.py.
+    docs = list(MongoClient(uri)[db]["speedtest_results"].find(
+        {"suspect": {"$ne": True}}, projection))
     print(f"[chargement] {len(docs)} mesures depuis MongoDB")
     return pd.DataFrame(docs)
 
