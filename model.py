@@ -63,6 +63,11 @@ PII_PROJECTION = {
     "extra_raw": 0, "user_agent": 0, "language": 0,
 }
 
+# Mesures marquées suspectes par le backend (position GPS simulée) : jamais
+# utilisées pour l'entraînement ni la détection. `$ne` garde les anciennes
+# mesures, dépourvues du champ.
+EXCLUDE_SUSPECT = {"suspect": {"$ne": True}}
+
 # Fusion des libellés d'opérateur en doublon (mêmes règles que prepare_data.py).
 # Sans cela, "ONATEL (…" et "ONATEL (…, PTT)" sont traités comme deux opérateurs.
 OPERATOR_ALIASES = [
@@ -94,7 +99,8 @@ def load_dataframe() -> pd.DataFrame:
     if not uri:
         raise RuntimeError("SPEEDTEST_DATABASE_CONNECTION_STRING manquante")
     db = os.environ.get("SPEEDTEST_DATABASE_NAME", "yele_speedtest")
-    docs = list(MongoClient(uri)[db]["speedtest_results"].find({}, PII_PROJECTION))
+    docs = list(MongoClient(uri)[db]["speedtest_results"].find(
+        EXCLUDE_SUSPECT, PII_PROJECTION))
     df = pd.DataFrame(docs)
     if df.empty:
         return df
